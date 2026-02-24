@@ -57,6 +57,7 @@ describe('EventBus', () => {
       ema50Slope: 0.01,
       volumePct: 1.2,
       volumePercentile: 65
+      volumePct: 1.2
     });
 
     await done;
