@@ -6,6 +6,8 @@ import { FeatureService } from '../data/featureService.js';
 import { MarketDataService } from '../data/marketDataService.js';
 import { EventBus } from '../events/eventBus.js';
 import { MexcClient } from '../mexc/client.js';
+import { BreakoutEngine } from '../strategy/engines/breakout.js';
+import { RegimeEngine } from '../strategy/regimeEngine.js';
 import { RegimeEngine } from '../strategy/regimeEngine.js';
 import { MarketDataService } from '../data/marketDataService.js';
 import { EventBus } from '../events/eventBus.js';
@@ -36,6 +38,8 @@ export async function bootstrap() {
   featureService.subscribe();
   const regimeEngine = new RegimeEngine({ prisma, eventBus });
   regimeEngine.subscribe();
+  const breakoutEngine = new BreakoutEngine({ prisma, eventBus });
+  breakoutEngine.subscribe();
 
   eventBus.on('features.ready', (feature) => {
     logger.info({ symbol: feature.symbol, timeframe: feature.timeframe, closeTime: feature.closeTime }, 'features.ready');
@@ -43,6 +47,10 @@ export async function bootstrap() {
 
   eventBus.on('regime.updated', (decision) => {
     logger.info({ symbol: decision.symbol, regime: decision.regime, engine: decision.engine }, 'regime.updated');
+  });
+
+  eventBus.on('signal.generated', (signal) => {
+    logger.info({ symbol: signal.tradePlan.symbol, side: signal.tradePlan.side, engine: signal.tradePlan.engine }, 'signal.generated');
   });
 
   logger.info('Bot booted');
