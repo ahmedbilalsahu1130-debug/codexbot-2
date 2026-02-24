@@ -13,3 +13,4 @@ export {
   type PositionManagerOptions
 } from './positionManager.js';
 export { nextState, type PositionLifecycleState, type PositionStateMachine } from './stateMachine.js';
+export {};
