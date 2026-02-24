@@ -153,6 +153,12 @@ export class FeatureService {
 
     await this.prisma.auditEvent.create({
       data: {
+        step: 'feature.compute',
+        level: 'info',
+        message: 'features computed',
+        inputsHash: hashObject({ symbol, timeframe, closeTime }),
+        outputsHash: hashObject(feature),
+        paramsVersionId: 'baseline',
         category: 'feature_pipeline',
         action: 'features_computed',
         actor: 'feature_service',

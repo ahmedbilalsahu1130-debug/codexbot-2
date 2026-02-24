@@ -172,6 +172,12 @@ export class ExecutionEngine {
   private async audit(action: string, metadata: Record<string, unknown>): Promise<void> {
     await this.prisma.auditEvent.create({
       data: {
+        step: `execution.${action}`,
+        level: 'warn',
+        message: action,
+        inputsHash: hashObject(metadata),
+        outputsHash: hashObject({ action }),
+        paramsVersionId: 'baseline',
         category: 'execution',
         action,
         actor: 'execution_engine',

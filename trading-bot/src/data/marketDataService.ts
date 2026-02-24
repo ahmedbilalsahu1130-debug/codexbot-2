@@ -168,6 +168,13 @@ export class MarketDataService {
 
     await this.prisma.auditEvent.create({
       data: {
+        step: 'marketData.integrity',
+        level: 'error',
+        message: 'market data integrity failed',
+        reason,
+        inputsHash: hashObject({ symbol, timeframe, candles }),
+        outputsHash: hashObject({ reason }),
+        paramsVersionId: 'baseline',
         category: 'market_data_integrity',
         action: 'poll_failed',
         actor: 'market_data_service',

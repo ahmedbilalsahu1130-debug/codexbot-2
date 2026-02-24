@@ -126,6 +126,19 @@ model Position {
 }
 
 model AuditEvent {
+  id              BigInt   @id @default(autoincrement())
+  step            String
+  level           String
+  message         String
+  reason          String?
+  inputsHash      String
+  outputsHash     String
+  paramsVersionId String
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  @@index([step, createdAt])
+  @@index([paramsVersionId, createdAt])
   id         BigInt   @id @default(autoincrement())
   category   String
   action     String
@@ -138,6 +151,19 @@ model AuditEvent {
 }
 
 model ParamVersion {
+  id                BigInt   @id @default(autoincrement())
+  effectiveFrom     DateTime
+  kb                Decimal  @db.Decimal(12, 6)
+  ks                Decimal  @db.Decimal(12, 6)
+  leverageBandsJson Json
+  cooldownRulesJson Json
+  portfolioCapsJson Json
+  createdAt         DateTime @default(now())
+
+  @@index([effectiveFrom])
+  @@map("param_versions")
+}
+
   id          BigInt   @id @default(autoincrement())
   name        String
   version     String

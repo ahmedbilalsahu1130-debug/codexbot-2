@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 
 import type { RegimeDecision } from '../domain/models.js';
+import { hashObject } from '../domain/models.js';
 import type { EventBus } from '../events/eventBus.js';
 import { computeAtrPct } from '../indicators/atr.js';
 
@@ -156,6 +157,13 @@ export class PositionManager {
 
     await this.prisma.auditEvent.create({
       data: {
+        step: 'position.partialExit',
+        level: 'info',
+        message: 'partial exit',
+        reason,
+        inputsHash: hashObject({ positionId: pos.id, qtyToExit, fillPrice }),
+        outputsHash: hashObject({ remainingQty: pos.remainingQty, realizedR: pos.realizedR }),
+        paramsVersionId: 'baseline',
         category: 'position_manager',
         action: 'partial_exit',
         actor: 'position_manager',
@@ -175,6 +183,13 @@ export class PositionManager {
 
     await this.prisma.auditEvent.create({
       data: {
+        step: 'position.close',
+        level: 'warn',
+        message: 'position closed',
+        reason,
+        inputsHash: hashObject({ positionId: pos.id, fillPrice, qtyToExit }),
+        outputsHash: hashObject({ realizedR: pos.realizedR }),
+        paramsVersionId: 'baseline',
         category: 'position_manager',
         action: 'position_closed',
         actor: 'position_manager',
@@ -206,6 +221,12 @@ export class PositionManager {
   private async emitUpdate(pos: ManagedPosition, message: string): Promise<void> {
     await this.prisma.auditEvent.create({
       data: {
+        step: 'position.update',
+        level: 'info',
+        message,
+        inputsHash: hashObject({ positionId: pos.id }),
+        outputsHash: hashObject({ stopPrice: pos.stopPrice, remainingQty: pos.remainingQty }),
+        paramsVersionId: 'baseline',
         category: 'position_manager',
         action: 'position_update',
         actor: 'position_manager',

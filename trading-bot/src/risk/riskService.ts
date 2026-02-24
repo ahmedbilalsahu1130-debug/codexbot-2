@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 
 import type { RegimeDecision, TradePlan } from '../domain/models.js';
+import { hashObject } from '../domain/models.js';
 import type { PortfolioService } from '../portfolio/portfolioService.js';
 
 export type RiskConfig = {
@@ -121,6 +122,8 @@ export class RiskService {
   private async getLatestEngineSignalTs(engine: TradePlan['engine']): Promise<number | null> {
     const row = await this.prisma.auditEvent.findFirst({
       where: {
+        step: 'risk.decision',
+        message: 'approve'
         category: 'risk_decision',
         action: 'approve'
       },
@@ -143,6 +146,13 @@ export class RiskService {
   private async auditDecision(decision: RiskDecision, nowMs: number, regime: RegimeDecision | null): Promise<void> {
     await this.prisma.auditEvent.create({
       data: {
+        step: 'risk.decision',
+        level: decision.status === 'APPROVE' ? 'info' : 'warn',
+        message: decision.status === 'APPROVE' ? 'approve' : 'reject',
+        reason: decision.status === 'REJECT' ? decision.reason : null,
+        inputsHash: hashObject({ plan: decision.plan, nowMs, defensive: regime?.defensive ?? null }),
+        outputsHash: hashObject(decision),
+        paramsVersionId: 'baseline',
         category: 'risk_decision',
         action: decision.status === 'APPROVE' ? 'approve' : 'reject',
         actor: 'risk_service',
