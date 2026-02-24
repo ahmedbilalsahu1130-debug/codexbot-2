@@ -7,6 +7,9 @@ import { MarketDataService } from '../data/marketDataService.js';
 import { EventBus } from '../events/eventBus.js';
 import { MexcClient } from '../mexc/client.js';
 import { BreakoutEngine } from '../strategy/engines/breakout.js';
+import { ContinuationEngine } from '../strategy/engines/continuation.js';
+import { RegimeEngine } from '../strategy/regimeEngine.js';
+import { ReversalEngine } from '../strategy/engines/reversal.js';
 import { RegimeEngine } from '../strategy/regimeEngine.js';
 import { RegimeEngine } from '../strategy/regimeEngine.js';
 import { MarketDataService } from '../data/marketDataService.js';
@@ -42,6 +45,8 @@ export async function bootstrap() {
   breakoutEngine.subscribe();
   const continuationEngine = new ContinuationEngine({ prisma, eventBus });
   continuationEngine.subscribe();
+  const reversalEngine = new ReversalEngine({ prisma, eventBus });
+  reversalEngine.subscribe();
 
   eventBus.on('features.ready', (feature) => {
     logger.info({ symbol: feature.symbol, timeframe: feature.timeframe, closeTime: feature.closeTime }, 'features.ready');
