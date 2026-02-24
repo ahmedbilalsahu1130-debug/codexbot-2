@@ -124,6 +124,8 @@ export class RiskService {
       where: {
         step: 'risk.decision',
         message: 'approve'
+        category: 'risk_decision',
+        action: 'approve'
       },
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true, metadata: true }
@@ -151,6 +153,9 @@ export class RiskService {
         inputsHash: hashObject({ plan: decision.plan, nowMs, defensive: regime?.defensive ?? null }),
         outputsHash: hashObject(decision),
         paramsVersionId: 'baseline',
+        category: 'risk_decision',
+        action: decision.status === 'APPROVE' ? 'approve' : 'reject',
+        actor: 'risk_service',
         metadata: {
           ts: nowMs,
           engine: decision.plan.engine,

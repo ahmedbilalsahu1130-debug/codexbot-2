@@ -164,6 +164,9 @@ export class PositionManager {
         inputsHash: hashObject({ positionId: pos.id, qtyToExit, fillPrice }),
         outputsHash: hashObject({ remainingQty: pos.remainingQty, realizedR: pos.realizedR }),
         paramsVersionId: 'baseline',
+        category: 'position_manager',
+        action: 'partial_exit',
+        actor: 'position_manager',
         metadata: { positionId: pos.id, qtyToExit, fillPrice, reason }
       }
     });
@@ -187,6 +190,9 @@ export class PositionManager {
         inputsHash: hashObject({ positionId: pos.id, fillPrice, qtyToExit }),
         outputsHash: hashObject({ realizedR: pos.realizedR }),
         paramsVersionId: 'baseline',
+        category: 'position_manager',
+        action: 'position_closed',
+        actor: 'position_manager',
         metadata: { positionId: pos.id, fillPrice, qtyToExit, reason }
       }
     });
@@ -221,6 +227,9 @@ export class PositionManager {
         inputsHash: hashObject({ positionId: pos.id }),
         outputsHash: hashObject({ stopPrice: pos.stopPrice, remainingQty: pos.remainingQty }),
         paramsVersionId: 'baseline',
+        category: 'position_manager',
+        action: 'position_update',
+        actor: 'position_manager',
         metadata: { positionId: pos.id, message, stopPrice: pos.stopPrice, remainingQty: pos.remainingQty }
       }
     });

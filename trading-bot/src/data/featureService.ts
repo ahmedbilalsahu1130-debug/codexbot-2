@@ -159,6 +159,9 @@ export class FeatureService {
         inputsHash: hashObject({ symbol, timeframe, closeTime }),
         outputsHash: hashObject(feature),
         paramsVersionId: 'baseline',
+        category: 'feature_pipeline',
+        action: 'features_computed',
+        actor: 'feature_service',
         metadata: {
           symbol,
           timeframe,
