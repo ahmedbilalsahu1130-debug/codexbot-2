@@ -10,6 +10,7 @@ datasource db {
 model Candle {
   id         BigInt   @id @default(autoincrement())
   symbol     String
+  timeframe  String
   interval   String
   openTime   DateTime
   closeTime  DateTime
@@ -20,6 +21,10 @@ model Candle {
   volume     Decimal  @db.Decimal(30, 10)
   createdAt  DateTime @default(now())
 
+  rawPayload Json?
+
+  @@unique([symbol, timeframe, closeTime], name: "symbol_timeframe_closeTime")
+  @@index([symbol, timeframe, openTime])
   @@index([symbol, interval, openTime])
   @@map("candles")
 }
