@@ -2,6 +2,10 @@ import { loadMexcEnv } from '../config/env.js';
 import { loadConfig } from '../config/index.js';
 import { createLogger } from '../config/logger.js';
 import { connectDatabase } from '../data/prisma.js';
+import { FeatureService } from '../data/featureService.js';
+import { MarketDataService } from '../data/marketDataService.js';
+import { EventBus } from '../events/eventBus.js';
+import { MexcClient } from '../mexc/client.js';
 import { MarketDataService } from '../data/marketDataService.js';
 import { EventBus } from '../events/eventBus.js';
 import { MexcClient } from '../mexc/client.js';
@@ -27,6 +31,12 @@ export async function bootstrap() {
 
   const mexcClient = new MexcClient({ env: mexcEnv, logger });
   const marketDataService = new MarketDataService({ prisma, mexcClient, eventBus });
+  const featureService = new FeatureService({ prisma, eventBus });
+  featureService.subscribe();
+
+  eventBus.on('features.ready', (feature) => {
+    logger.info({ symbol: feature.symbol, timeframe: feature.timeframe, closeTime: feature.closeTime }, 'features.ready');
+  });
 
   logger.info('Bot booted');
 

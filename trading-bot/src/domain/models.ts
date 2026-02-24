@@ -38,15 +38,19 @@ export const candleSchema = z
  *   "symbol": "BTCUSDT",
  *   "timeframe": "5m",
  *   "closeTime": 1734303000000,
+ *   "logReturn": 0.0012,
  *   "atrPct": 0.43,
  *   "ewmaSigma": 0.17,
  *   "sigmaNorm": 0.78,
  *   "volPct5m": 1.05,
  *   "bbWidthPct": 0.64,
+ *   "bbWidthPercentile": 82.5,
  *   "ema20": 103990,
  *   "ema50": 103842,
  *   "ema200": 103210,
  *   "ema50Slope": 0.12,
+ *   "volumePct": 1.24,
+ *   "volumePercentile": 76.3
  *   "volumePct": 1.24
  * }
  */
@@ -55,15 +59,19 @@ export const featureVectorSchema = z
     symbol: nonEmptyString,
     timeframe: nonEmptyString,
     closeTime: epochMsSchema,
+    logReturn: z.number().finite(),
     atrPct: finiteNonNegativeNumber,
     ewmaSigma: finiteNonNegativeNumber,
     sigmaNorm: finiteNonNegativeNumber,
     volPct5m: finiteNonNegativeNumber,
     bbWidthPct: finiteNonNegativeNumber,
+    bbWidthPercentile: finiteNonNegativeNumber.max(100),
     ema20: finiteNonNegativeNumber,
     ema50: finiteNonNegativeNumber,
     ema200: finiteNonNegativeNumber,
     ema50Slope: finiteNonNegativeNumber,
+    volumePct: finiteNonNegativeNumber,
+    volumePercentile: finiteNonNegativeNumber.max(100)
     volumePct: finiteNonNegativeNumber
   })
   .strict();

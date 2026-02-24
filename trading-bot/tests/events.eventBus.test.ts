@@ -44,15 +44,19 @@ describe('EventBus', () => {
       symbol: 'BTCUSDT',
       timeframe: '5m',
       closeTime: Date.now() - 10_000,
+      logReturn: 0.001,
       atrPct: 0.1,
       ewmaSigma: 0.2,
       sigmaNorm: 0.3,
       volPct5m: 0.4,
       bbWidthPct: 0.5,
+      bbWidthPercentile: 70,
       ema20: 100,
       ema50: 101,
       ema200: 102,
       ema50Slope: 0.01,
+      volumePct: 1.2,
+      volumePercentile: 65
       volumePct: 1.2
     });
 

@@ -38,6 +38,7 @@ model Feature {
   paramVersion String
   createdAt    DateTime @default(now())
 
+  @@unique([symbol, timeframe, computedAt], name: "symbol_timeframe_computedAt")
   @@index([symbol, timeframe, computedAt])
   @@map("features")
 }
