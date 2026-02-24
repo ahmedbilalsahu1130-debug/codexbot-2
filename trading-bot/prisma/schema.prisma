@@ -43,6 +43,22 @@ model Feature {
   @@map("features")
 }
 
+
+model RegimeDecision {
+  id          BigInt   @id @default(autoincrement())
+  symbol      String
+  closeTime5m DateTime
+  regime      String
+  engine      String
+  defensive   Boolean
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([symbol, closeTime5m], name: "symbol_closeTime5m")
+  @@index([symbol, closeTime5m])
+  @@map("regime_decisions")
+}
+
 model Signal {
   id           BigInt   @id @default(autoincrement())
   symbol       String
