@@ -51,6 +51,7 @@ export const candleSchema = z
  *   "ema50Slope": 0.12,
  *   "volumePct": 1.24,
  *   "volumePercentile": 76.3
+ *   "volumePct": 1.24
  * }
  */
 export const featureVectorSchema = z
@@ -71,6 +72,7 @@ export const featureVectorSchema = z
     ema50Slope: finiteNonNegativeNumber,
     volumePct: finiteNonNegativeNumber,
     volumePercentile: finiteNonNegativeNumber.max(100)
+    volumePct: finiteNonNegativeNumber
   })
   .strict();
 

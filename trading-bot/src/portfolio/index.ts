@@ -4,3 +4,4 @@ export {
   type PortfolioCaps,
   type PortfolioServiceOptions
 } from './portfolioService.js';
+export {};
