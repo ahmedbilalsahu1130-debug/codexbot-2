@@ -40,6 +40,8 @@ export async function bootstrap() {
   regimeEngine.subscribe();
   const breakoutEngine = new BreakoutEngine({ prisma, eventBus });
   breakoutEngine.subscribe();
+  const continuationEngine = new ContinuationEngine({ prisma, eventBus });
+  continuationEngine.subscribe();
 
   eventBus.on('features.ready', (feature) => {
     logger.info({ symbol: feature.symbol, timeframe: feature.timeframe, closeTime: feature.closeTime }, 'features.ready');
