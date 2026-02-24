@@ -1,0 +1,44 @@
+{
+  "name": "trading-bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Modular monolith scaffolding for a crypto trading bot",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/app/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/app/main.js",
+    "test": "jest --passWithNoTests",
+    "lint": "eslint . --ext .ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.4.1",
+    "bottleneck": "^2.19.5",
+    "dotenv": "^16.4.5",
+    "luxon": "^3.5.0",
+    "p-retry": "^6.2.0",
+    "pino": "^9.5.0",
+    "undici": "^6.21.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.13.4",
+    "@typescript-eslint/eslint-plugin": "^8.24.1",
+    "@typescript-eslint/parser": "^8.24.1",
+    "eslint": "^9.20.1",
+    "eslint-config-prettier": "^10.0.1",
+    "jest": "^29.7.0",
+    "prettier": "^3.5.1",
+    "prisma": "^6.4.1",
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "nock": "^14.0.1"
+  }
+}
