@@ -11,6 +11,7 @@ model Candle {
   id         BigInt   @id @default(autoincrement())
   symbol     String
   timeframe  String
+  interval   String
   openTime   DateTime
   closeTime  DateTime
   open       Decimal  @db.Decimal(20, 10)
@@ -24,6 +25,7 @@ model Candle {
 
   @@unique([symbol, timeframe, closeTime], name: "symbol_timeframe_closeTime")
   @@index([symbol, timeframe, openTime])
+  @@index([symbol, interval, openTime])
   @@map("candles")
 }
 
