@@ -164,7 +164,6 @@ export class ReversalEngine {
       stopPct,
       leverage,
       marginPct: this.config.marginPct,
-      paramsVersionId: 'baseline',
       reason: `range boundary reversal ${side.toLowerCase()} confirmed`,
       nowMs: feature.closeTime,
       expiryMs: this.config.expiryMs,

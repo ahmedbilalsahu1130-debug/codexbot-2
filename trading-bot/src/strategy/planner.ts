@@ -10,7 +10,6 @@ export type PlanBuildInput = {
   tpModel?: TradePlan['tpModel'];
   leverage: number;
   marginPct: number;
-  paramsVersionId: string;
   reason: string;
   confidence?: number;
   nowMs?: number;
@@ -32,10 +31,10 @@ export function buildTradePlan(input: PlanBuildInput): TradePlan {
     tpModel: input.tpModel ?? 'A',
     leverage: input.leverage,
     marginPct: input.marginPct,
-    paramsVersionId: input.paramsVersionId,
     expiresAt,
     reason: input.reason,
     confidence: input.confidence ?? 0.6
+    reason: input.reason
   });
 }
 

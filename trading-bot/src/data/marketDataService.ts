@@ -175,6 +175,9 @@ export class MarketDataService {
         inputsHash: hashObject({ symbol, timeframe, candles }),
         outputsHash: hashObject({ reason }),
         paramsVersionId: 'baseline',
+        category: 'market_data_integrity',
+        action: 'poll_failed',
+        actor: 'market_data_service',
         metadata: {
           symbol,
           timeframe,

@@ -103,8 +103,7 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
       eventBus,
       breakoutEngine,
       continuationEngine,
-      reversalEngine,
-      paramsService
+      reversalEngine
     });
 
     boot('9.RiskService');
@@ -123,12 +122,7 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
     });
 
     boot('12.PositionManager');
-    const positionManager = new PositionManager({
-      prisma,
-      eventBus,
-      auditService,
-      getActiveParamsVersionId: async () => (await paramsService.getActiveParams()).paramsVersionId
-    });
+    const positionManager = new PositionManager({ prisma, eventBus });
 
     const latestRegime = new Map<string, ReturnType<typeof regimeEngine.processFeature> extends Promise<infer R> ? R : never>();
 
@@ -136,6 +130,7 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
     eventBus.on('candle.closed', async (candle) => {
       await featureService.processClosedCandle(candle.symbol, candle.timeframe, candle.closeTime);
     });
+
     eventBus.on('features.ready', async (feature) => {
       if (feature.timeframe === '5m') {
         const decision = await regimeEngine.processFeature(feature);
@@ -143,6 +138,27 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
       }
 
       await strategyPlanner.onFeature(feature);
+
+        const continuation = await continuationEngine.evaluate(feature, decision);
+        if (continuation.triggered) {
+          eventBus.emit('signal.generated', { tradePlan: continuation.plan, feature, regime: decision });
+        }
+
+        const reversal = await reversalEngine.evaluate(feature, decision);
+        if (reversal.triggered) {
+          eventBus.emit('signal.generated', { tradePlan: reversal.plan, feature, regime: decision });
+        }
+      }
+
+      if (feature.timeframe === '1m') {
+        const decision = latestRegime.get(feature.symbol);
+        if (!decision) return;
+
+        const breakout = await breakoutEngine.evaluate(feature, decision);
+        if (breakout.triggered) {
+          eventBus.emit('signal.generated', { tradePlan: breakout.plan, feature, regime: decision });
+        }
+      }
     });
 
     eventBus.on('regime.updated', async (decision) => {
@@ -196,8 +212,7 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
         side: approved.plan.side,
         entryPrice: approved.plan.entryPrice,
         qty: approved.qty,
-        atrPct: approved.signal.feature.atrPct,
-        paramsVersionId: approved.plan.paramsVersionId
+        atrPct: approved.signal.feature.atrPct
       });
 
       if (result.status === 'FILLED') {
@@ -274,3 +289,4 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
     throw error;
   }
 }
+

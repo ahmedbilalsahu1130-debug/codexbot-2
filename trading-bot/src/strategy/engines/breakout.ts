@@ -161,7 +161,6 @@ export class BreakoutEngine {
       stopPct,
       leverage,
       marginPct: this.config.marginPct,
-      paramsVersionId: 'baseline',
       reason: `breakout confirmed above=${confirmedUp} below=${confirmedDown}`,
       nowMs: feature.closeTime,
       expiryMs: this.config.expiryMs

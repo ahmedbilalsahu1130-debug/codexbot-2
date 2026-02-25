@@ -2,7 +2,6 @@ import type { PrismaClient } from '@prisma/client';
 
 import type { TradePlan } from '../domain/models.js';
 import { hashObject } from '../domain/models.js';
-import { assertPlanHasParamsVersion, buildOrderIntentFromPlan } from '../config/paramGuard.js';
 import type { IExchangeExecution } from './exchangeAdapter.js';
 
 export type FallbackMode = 'MARKET' | 'REPLACE_LIMIT';
@@ -51,8 +50,6 @@ export class ExecutionEngine {
   }
 
   async execute(input: ExecuteInput): Promise<ExecuteResult> {
-    assertPlanHasParamsVersion(input.plan);
-
     const executionKey = this.executionKey(input.plan);
 
     const existing = await this.prisma.order.findFirst({ where: { externalId: executionKey } });
@@ -60,20 +57,11 @@ export class ExecutionEngine {
       return { status: 'SKIPPED', reason: 'plan already executed', orderId: String(existing.id) };
     }
 
-    const limitIntent = buildOrderIntentFromPlan({
-      plan: input.plan,
-      qty: input.qty,
-      type: 'LIMIT',
-      price: input.plan.entryPrice,
-      timeoutMs: this.config.limitTimeoutMs,
-      cancelIfInvalid: true
-    });
-
     const limit = await this.exchange.placeLimit({
-      symbol: limitIntent.symbol,
-      side: limitIntent.side,
-      qty: limitIntent.qty,
-      price: limitIntent.price ?? input.plan.entryPrice,
+      symbol: input.plan.symbol,
+      side: input.plan.side,
+      qty: input.qty,
+      price: input.plan.entryPrice,
       clientOrderId: executionKey
     });
 
@@ -106,7 +94,7 @@ export class ExecutionEngine {
     if (!stillValid) {
       await this.exchange.cancelOrder(limit.id);
       await this.prisma.order.update({ where: { id: orderRecord.id }, data: { status: 'CANCELED' } });
-      await this.audit('execution_cancel', { executionKey, reason: 'confirmation_failed' }, input.plan.paramsVersionId);
+      await this.audit('execution_cancel', { executionKey, reason: 'confirmation_failed' });
       return { status: 'CANCELED', orderId: String(orderRecord.id), reason: 'signal no longer valid' };
     }
 
@@ -168,8 +156,7 @@ export class ExecutionEngine {
         quantity: qty,
         avgEntry: fillPrice,
         unrealizedPnL: 0,
-        openedAt: new Date(),
-        paramsVersionId: plan.paramsVersionId
+        openedAt: new Date()
       }
     });
 
@@ -179,10 +166,10 @@ export class ExecutionEngine {
   }
 
   private executionKey(plan: TradePlan): string {
-    return `exec-${hashObject({ symbol: plan.symbol, side: plan.side, entryPrice: plan.entryPrice, expiresAt: plan.expiresAt, engine: plan.engine, paramsVersionId: plan.paramsVersionId })}`;
+    return `exec-${hashObject({ symbol: plan.symbol, side: plan.side, entryPrice: plan.entryPrice, expiresAt: plan.expiresAt, engine: plan.engine })}`;
   }
 
-  private async audit(action: string, metadata: Record<string, unknown>, paramsVersionId = 'baseline'): Promise<void> {
+  private async audit(action: string, metadata: Record<string, unknown>): Promise<void> {
     await this.prisma.auditEvent.create({
       data: {
         step: `execution.${action}`,
@@ -190,7 +177,10 @@ export class ExecutionEngine {
         message: action,
         inputsHash: hashObject(metadata),
         outputsHash: hashObject({ action }),
-        paramsVersionId,
+        paramsVersionId: 'baseline',
+        category: 'execution',
+        action,
+        actor: 'execution_engine',
         metadata
       }
     });

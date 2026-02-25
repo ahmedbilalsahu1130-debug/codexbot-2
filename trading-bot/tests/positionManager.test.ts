@@ -21,8 +21,7 @@ describe('PositionManager', () => {
       stopPrice: stop,
       qty: 1,
       remainingQty: 1,
-      atrPct: 1,
-      paramsVersionId: '1'
+      atrPct: 1
     });
     await mgr.onOrderFilled('p1');
 
@@ -59,8 +58,7 @@ describe('PositionManager', () => {
       stopPrice: stop,
       qty: 1,
       remainingQty: 1,
-      atrPct: 1,
-      paramsVersionId: '1'
+      atrPct: 1
     });
     await mgr.onOrderFilled('p2');
 
@@ -93,8 +91,7 @@ describe('PositionManager', () => {
       stopPrice: 99,
       qty: 1,
       remainingQty: 1,
-      atrPct: 1,
-      paramsVersionId: '1'
+      atrPct: 1
     });
     await mgr.onOrderFilled('p3');
 
@@ -112,42 +109,4 @@ describe('PositionManager', () => {
 
     expect(closed).toBe(true);
   });
-
-
-  it('logs warning when params drift mid-position', async () => {
-    const bus = new EventBus();
-    const prisma = { auditEvent: { create: jest.fn(async () => ({})) } };
-    const auditService = { log: jest.fn(async () => undefined) };
-    const mgr = new PositionManager({
-      prisma: prisma as never,
-      eventBus: bus,
-      auditService: auditService as never,
-      getActiveParamsVersionId: async () => '2'
-    });
-
-    mgr.arm({
-      id: 'p4',
-      symbol: 'BTCUSDT',
-      side: 'Long',
-      entryPrice: 100,
-      initialStopPrice: 99,
-      stopPrice: 99,
-      qty: 1,
-      remainingQty: 1,
-      atrPct: 1,
-      paramsVersionId: '1'
-    });
-
-    await mgr.onOrderFilled('p4');
-    await mgr.onPrice('p4', 100.5);
-
-    expect(auditService.log).toHaveBeenCalledWith(
-      expect.objectContaining({
-        step: 'position.paramDrift',
-        reason: 'params_drift',
-        paramsVersionId: '1'
-      })
-    );
-  });
-
 });

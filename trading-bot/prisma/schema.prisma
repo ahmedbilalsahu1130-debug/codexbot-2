@@ -11,6 +11,7 @@ model Candle {
   id         BigInt   @id @default(autoincrement())
   symbol     String
   timeframe  String
+  interval   String
   openTime   DateTime
   closeTime  DateTime
   open       Decimal  @db.Decimal(20, 10)
@@ -24,6 +25,7 @@ model Candle {
 
   @@unique([symbol, timeframe, closeTime], name: "symbol_timeframe_closeTime")
   @@index([symbol, timeframe, openTime])
+  @@index([symbol, interval, openTime])
   @@map("candles")
 }
 
@@ -116,7 +118,6 @@ model Position {
   unrealizedPnL Decimal @db.Decimal(20, 10) @default(0)
   openedAt     DateTime
   closedAt     DateTime?
-  paramsVersionId String @default("baseline")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -138,6 +139,14 @@ model AuditEvent {
 
   @@index([step, createdAt])
   @@index([paramsVersionId, createdAt])
+  id         BigInt   @id @default(autoincrement())
+  category   String
+  action     String
+  actor      String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([category, createdAt])
   @@map("audit_events")
 }
 
@@ -155,3 +164,13 @@ model ParamVersion {
   @@map("param_versions")
 }
 
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  version     String
+  config      Json
+  activatedAt DateTime
+  createdAt   DateTime @default(now())
+
+  @@unique([name, version])
+  @@map("param_versions")
+}

@@ -10,10 +10,10 @@ function plan(overrides: Partial<Record<string, number | string>> = {}) {
     tpModel: 'A' as const,
     leverage: 3,
     marginPct: 5,
-    paramsVersionId: '1',
     expiresAt: Number(overrides.expiresAt ?? Date.now() + 60_000),
     reason: 'test',
     confidence: 0.7
+    reason: 'test'
   };
 }
 
@@ -170,30 +170,6 @@ describe('ExecutionEngine', () => {
     expect(exchange.placeMarket).toHaveBeenCalledTimes(1);
   });
 
-
-  it('throws when plan paramsVersionId is missing', async () => {
-    const prisma = prismaMock();
-    const exchange = {
-      placeLimit: jest.fn(),
-      getOrderStatus: jest.fn(),
-      cancelOrder: jest.fn(),
-      placeMarket: jest.fn()
-    };
-
-    const engine = new ExecutionEngine({
-      prisma: prisma.client as never,
-      exchange: exchange as never,
-      sleep: async () => undefined
-    });
-
-    await expect(
-      engine.execute({
-        plan: { ...(plan() as Record<string, unknown>), paramsVersionId: '' } as never,
-        qty: 1,
-        confirmation: async () => true
-      })
-    ).rejects.toThrow('TradePlan.paramsVersionId is required');
-  });
   it('idempotency prevents duplicate execution for same plan', async () => {
     const prisma = prismaMock();
     const exchange = {
