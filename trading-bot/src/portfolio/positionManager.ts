@@ -71,6 +71,45 @@ export class PositionManager {
     return managed;
   }
 
+
+  async onOrderSubmitted(input: {
+    positionId: string;
+    symbol: string;
+    side: 'Long' | 'Short';
+    entryPrice: number;
+    qty: number;
+    atrPct: number;
+  }): Promise<void> {
+    const initialStopPrice = buildInitialStop(input.entryPrice, input.atrPct, input.side);
+    this.arm({
+      id: input.positionId,
+      symbol: input.symbol,
+      side: input.side,
+      entryPrice: input.entryPrice,
+      initialStopPrice,
+      stopPrice: initialStopPrice,
+      qty: input.qty,
+      remainingQty: input.qty,
+      atrPct: input.atrPct
+    });
+
+    const pos = this.managed.get(input.positionId);
+    if (!pos) return;
+    pos.state = nextState(pos.state, 'ORDER_SUBMITTED');
+    await this.emitUpdate(pos, 'order submitted');
+  }
+
+  async onOrderFilledEvent(positionId: string): Promise<void> {
+    await this.onOrderFilled(positionId);
+  }
+
+  async onOrderCanceled(positionId: string): Promise<void> {
+    const pos = this.managed.get(positionId);
+    if (!pos) return;
+    pos.state = 'NEUTRAL';
+    await this.emitUpdate(pos, 'order canceled');
+  }
+
   async onOrderFilled(positionId: string): Promise<void> {
     const pos = this.managed.get(positionId);
     if (!pos) return;

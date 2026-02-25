@@ -1,3 +1,13 @@
+import { bootRuntime } from './runtime.js';
+
+export async function bootstrap() {
+  const runtime = await bootRuntime({ paperMode: true });
+  runtime.logger.info('Bot booted');
+
+  // Paper-mode example runner.
+  await runtime.marketDataService.poll(['BTCUSDT', 'ETHUSDT'], '1m', 50);
+
+  return runtime;
 import { loadMexcEnv } from '../config/env.js';
 import { loadConfig } from '../config/index.js';
 import { createLogger } from '../config/logger.js';

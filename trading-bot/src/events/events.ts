@@ -15,6 +15,21 @@ export type SignalGeneratedPayload = {
   regime: RegimeDecision;
 };
 
+export type RiskApprovedPayload = {
+  plan: TradePlan;
+  signal: SignalGeneratedPayload;
+  qty: number;
+  finalLeverage: number;
+  regime: RegimeDecision;
+};
+
+export type RiskRejectedPayload = {
+  plan: TradePlan;
+  signal: SignalGeneratedPayload;
+  reason: string;
+  regime: RegimeDecision;
+};
+
 export type OrderCanceledPayload = {
   orderId: string;
   reason: string;
@@ -31,6 +46,8 @@ export type TradingEventMap = {
   'features.ready': FeatureVector;
   'regime.updated': RegimeDecision;
   'signal.generated': SignalGeneratedPayload;
+  'risk.approved': RiskApprovedPayload;
+  'risk.rejected': RiskRejectedPayload;
   'order.submitted': Order;
   'order.filled': Fill;
   'order.canceled': OrderCanceledPayload;

@@ -10,6 +10,8 @@ export type RiskConfig = {
   minQty: number;
   qtyStep: number;
   maxLeverageDefensive: number;
+  maxOpenPositions: number;
+  maxOpenPositionsDefensive: number;
 };
 
 export type RiskDecision =
@@ -27,6 +29,7 @@ export type RiskDecision =
 
 export type RiskServiceOptions = {
   prisma: PrismaClient;
+  portfolioService?: PortfolioService;
   portfolioService: PortfolioService;
   config?: Partial<RiskConfig>;
 };
@@ -36,11 +39,29 @@ const DEFAULT_CONFIG: RiskConfig = {
   perEngineCooldownMs: 2 * 60_000,
   minQty: 0.001,
   qtyStep: 0.001,
+  maxLeverageDefensive: 2,
+  maxOpenPositions: 5,
+  maxOpenPositionsDefensive: 2
   maxLeverageDefensive: 2
 };
 
 export class RiskService {
   private readonly prisma: PrismaClient;
+  private readonly config: RiskConfig;
+  private portfolioService?: PortfolioService;
+
+  constructor(options: RiskServiceOptions) {
+    this.prisma = options.prisma;
+    this.config = { ...DEFAULT_CONFIG, ...options.config };
+    this.portfolioService = options.portfolioService;
+  }
+
+  setPortfolioService(service: PortfolioService): void {
+    this.portfolioService = service;
+  }
+
+  async evaluatePlan(plan: TradePlan, regime: RegimeDecision, nowMs = Date.now()): Promise<RiskDecision> {
+    const openBySymbol = await this.countOpenBySymbol(plan.symbol);
   private readonly portfolioService: PortfolioService;
   private readonly config: RiskConfig;
 
@@ -56,6 +77,8 @@ export class RiskService {
       return this.reject(plan, 'max 1 open position per symbol exceeded');
     }
 
+    const openTotal = await this.countOpenTotal();
+    const allowedTotal = regime.defensive ? this.config.maxOpenPositionsDefensive : this.config.maxOpenPositions;
     const openTotal = await this.portfolioService.countOpenTotal();
     const allowedTotal = this.portfolioService.getMaxOpenPositions(regime.defensive);
     if (openTotal >= allowedTotal) {
@@ -92,6 +115,22 @@ export class RiskService {
 
     await this.auditDecision(decision, nowMs, regime);
     return decision;
+  }
+
+  private async countOpenBySymbol(symbol: string): Promise<number> {
+    if (this.portfolioService) {
+      return this.portfolioService.countOpenBySymbol(symbol);
+    }
+
+    return this.prisma.position.count({ where: { symbol, state: { in: ['OPEN', 'CLOSING'] } } });
+  }
+
+  private async countOpenTotal(): Promise<number> {
+    if (this.portfolioService) {
+      return this.portfolioService.countOpenTotal();
+    }
+
+    return this.prisma.position.count({ where: { state: { in: ['OPEN', 'CLOSING'] } } });
   }
 
   private async reject(plan: TradePlan, reason: string): Promise<RiskDecision> {
