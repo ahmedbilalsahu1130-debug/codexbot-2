@@ -34,6 +34,7 @@ export function buildTradePlan(input: PlanBuildInput): TradePlan {
     expiresAt,
     reason: input.reason,
     confidence: input.confidence ?? 0.6
+    reason: input.reason
   });
 }
 

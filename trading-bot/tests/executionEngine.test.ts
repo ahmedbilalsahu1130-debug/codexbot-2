@@ -13,6 +13,7 @@ function plan(overrides: Partial<Record<string, number | string>> = {}) {
     expiresAt: Number(overrides.expiresAt ?? Date.now() + 60_000),
     reason: 'test',
     confidence: 0.7
+    reason: 'test'
   };
 }
 

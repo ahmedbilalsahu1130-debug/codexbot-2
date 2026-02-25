@@ -30,6 +30,7 @@ export type RiskDecision =
 export type RiskServiceOptions = {
   prisma: PrismaClient;
   portfolioService?: PortfolioService;
+  portfolioService: PortfolioService;
   config?: Partial<RiskConfig>;
 };
 
@@ -41,6 +42,7 @@ const DEFAULT_CONFIG: RiskConfig = {
   maxLeverageDefensive: 2,
   maxOpenPositions: 5,
   maxOpenPositionsDefensive: 2
+  maxLeverageDefensive: 2
 };
 
 export class RiskService {
@@ -60,12 +62,25 @@ export class RiskService {
 
   async evaluatePlan(plan: TradePlan, regime: RegimeDecision, nowMs = Date.now()): Promise<RiskDecision> {
     const openBySymbol = await this.countOpenBySymbol(plan.symbol);
+  private readonly portfolioService: PortfolioService;
+  private readonly config: RiskConfig;
+
+  constructor(options: RiskServiceOptions) {
+    this.prisma = options.prisma;
+    this.portfolioService = options.portfolioService;
+    this.config = { ...DEFAULT_CONFIG, ...options.config };
+  }
+
+  async evaluatePlan(plan: TradePlan, regime: RegimeDecision, nowMs = Date.now()): Promise<RiskDecision> {
+    const openBySymbol = await this.portfolioService.countOpenBySymbol(plan.symbol);
     if (openBySymbol >= 1) {
       return this.reject(plan, 'max 1 open position per symbol exceeded');
     }
 
     const openTotal = await this.countOpenTotal();
     const allowedTotal = regime.defensive ? this.config.maxOpenPositionsDefensive : this.config.maxOpenPositions;
+    const openTotal = await this.portfolioService.countOpenTotal();
+    const allowedTotal = this.portfolioService.getMaxOpenPositions(regime.defensive);
     if (openTotal >= allowedTotal) {
       return this.reject(plan, `max open positions reached (${allowedTotal})`);
     }
@@ -148,6 +163,8 @@ export class RiskService {
       where: {
         step: 'risk.decision',
         message: 'approve'
+        category: 'risk_decision',
+        action: 'approve'
       },
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true, metadata: true }
@@ -175,6 +192,9 @@ export class RiskService {
         inputsHash: hashObject({ plan: decision.plan, nowMs, defensive: regime?.defensive ?? null }),
         outputsHash: hashObject(decision),
         paramsVersionId: 'baseline',
+        category: 'risk_decision',
+        action: decision.status === 'APPROVE' ? 'approve' : 'reject',
+        actor: 'risk_service',
         metadata: {
           ts: nowMs,
           engine: decision.plan.engine,

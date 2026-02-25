@@ -51,6 +51,7 @@ export const candleSchema = z
  *   "ema50Slope": 0.12,
  *   "volumePct": 1.24,
  *   "volumePercentile": 76.3
+ *   "volumePct": 1.24
  * }
  */
 export const featureVectorSchema = z
@@ -71,6 +72,7 @@ export const featureVectorSchema = z
     ema50Slope: finiteNonNegativeNumber,
     volumePct: finiteNonNegativeNumber,
     volumePercentile: finiteNonNegativeNumber.max(100)
+    volumePct: finiteNonNegativeNumber
   })
   .strict();
 
@@ -114,6 +116,7 @@ export const tpModelSchema = z.enum(['A', 'B']);
  *   "expiresAt": 1734303600000,
  *   "reason": "validated breakout continuation",
  *   "confidence": 0.74
+ *   "reason": "validated breakout continuation"
  * }
  */
 export const tradePlanSchema = z
@@ -129,6 +132,7 @@ export const tradePlanSchema = z
     expiresAt: epochMsSchema,
     reason: nonEmptyString,
     confidence: z.number().min(0).max(1)
+    reason: nonEmptyString
   })
   .strict();
 

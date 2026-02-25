@@ -36,6 +36,7 @@ describe('domain models', () => {
       expiresAt: Date.now() + 60_000,
       reason: 'test',
       confidence: 0.7
+      reason: 'test'
     });
 
     expect(result.success).toBe(false);
