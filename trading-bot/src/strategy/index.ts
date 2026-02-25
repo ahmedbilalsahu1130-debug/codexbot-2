@@ -8,4 +8,5 @@ export {
   mapRegimeToEngine,
   type RegimeEngineOptions
 } from './regimeEngine.js';
+export { StrategyPlanner, type StrategyPlannerOptions } from './strategyPlanner.js';
 export {};

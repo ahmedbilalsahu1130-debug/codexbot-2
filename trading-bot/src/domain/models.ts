@@ -114,6 +114,8 @@ export const tpModelSchema = z.enum(['A', 'B']);
  *   "leverage": 3,
  *   "marginPct": 8,
  *   "expiresAt": 1734303600000,
+ *   "reason": "validated breakout continuation",
+ *   "confidence": 0.74
  *   "reason": "validated breakout continuation"
  * }
  */
@@ -128,6 +130,8 @@ export const tradePlanSchema = z
     leverage: finiteNonNegativeNumber,
     marginPct: finiteNonNegativeNumber,
     expiresAt: epochMsSchema,
+    reason: nonEmptyString,
+    confidence: z.number().min(0).max(1)
     reason: nonEmptyString
   })
   .strict();
@@ -261,6 +265,7 @@ export const auditLevelSchema = z.enum(['debug', 'info', 'warn', 'error']);
  *   "step": "strategy.evaluate",
  *   "level": "info",
  *   "message": "regime classified",
+ *   "reason": "gate_failed",
  *   "inputsHash": "9dbb9f...",
  *   "outputsHash": "a0d1f2...",
  *   "paramsVersionId": "params_v1",
@@ -274,6 +279,7 @@ export const auditEventSchema = z
     step: nonEmptyString,
     level: auditLevelSchema,
     message: nonEmptyString,
+    reason: nonEmptyString.optional(),
     inputsHash: nonEmptyString,
     outputsHash: nonEmptyString,
     paramsVersionId: nonEmptyString,

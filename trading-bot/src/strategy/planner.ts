@@ -11,6 +11,7 @@ export type PlanBuildInput = {
   leverage: number;
   marginPct: number;
   reason: string;
+  confidence?: number;
   nowMs?: number;
   expiryMs?: number;
 };
@@ -31,6 +32,8 @@ export function buildTradePlan(input: PlanBuildInput): TradePlan {
     leverage: input.leverage,
     marginPct: input.marginPct,
     expiresAt,
+    reason: input.reason,
+    confidence: input.confidence ?? 0.6
     reason: input.reason
   });
 }

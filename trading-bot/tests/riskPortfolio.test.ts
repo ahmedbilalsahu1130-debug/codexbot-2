@@ -11,6 +11,8 @@ const plan = {
   leverage: 4,
   marginPct: 5,
   expiresAt: Date.now() + 60_000,
+  reason: 'test',
+    confidence: 0.7
   reason: 'test'
 };
 

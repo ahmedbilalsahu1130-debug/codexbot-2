@@ -18,6 +18,7 @@ import { BreakoutEngine } from '../strategy/engines/breakout.js';
 import { ContinuationEngine } from '../strategy/engines/continuation.js';
 import { ReversalEngine } from '../strategy/engines/reversal.js';
 import { RegimeEngine } from '../strategy/regimeEngine.js';
+import { StrategyPlanner } from '../strategy/strategyPlanner.js';
 import { MexcClient } from '../mexc/client.js';
 
 export type RuntimeOptions = {
@@ -38,6 +39,7 @@ export type RuntimeContext = {
   breakoutEngine: BreakoutEngine;
   continuationEngine: ContinuationEngine;
   reversalEngine: ReversalEngine;
+  strategyPlanner: StrategyPlanner;
   riskService: RiskService;
   portfolioService: PortfolioService;
   executionEngine: ExecutionEngine;
@@ -97,6 +99,12 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
     const breakoutEngine = new BreakoutEngine({ prisma, eventBus });
     const continuationEngine = new ContinuationEngine({ prisma, eventBus });
     const reversalEngine = new ReversalEngine({ prisma, eventBus });
+    const strategyPlanner = new StrategyPlanner({
+      eventBus,
+      breakoutEngine,
+      continuationEngine,
+      reversalEngine
+    });
 
     boot('9.RiskService');
     const riskService = new RiskService({ prisma });
@@ -127,6 +135,9 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
       if (feature.timeframe === '5m') {
         const decision = await regimeEngine.processFeature(feature);
         latestRegime.set(feature.symbol, decision);
+      }
+
+      await strategyPlanner.onFeature(feature);
 
         const continuation = await continuationEngine.evaluate(feature, decision);
         if (continuation.triggered) {
@@ -266,6 +277,7 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
       breakoutEngine,
       continuationEngine,
       reversalEngine,
+      strategyPlanner,
       riskService,
       portfolioService,
       executionEngine,
