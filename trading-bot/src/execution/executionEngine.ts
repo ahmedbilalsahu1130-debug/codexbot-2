@@ -178,6 +178,9 @@ export class ExecutionEngine {
         inputsHash: hashObject(metadata),
         outputsHash: hashObject({ action }),
         paramsVersionId: 'baseline',
+        category: 'execution',
+        action,
+        actor: 'execution_engine',
         metadata
       }
     });
