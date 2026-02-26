@@ -151,7 +151,6 @@ export class ContinuationEngine {
       stopPct,
       leverage,
       marginPct: this.config.marginPct,
-      paramsVersionId: 'baseline',
       reason: `continuation ${side.toLowerCase()} confirmed after pullback`,
       nowMs: feature.closeTime,
       expiryMs: this.config.expiryMs,

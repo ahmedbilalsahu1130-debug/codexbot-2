@@ -57,10 +57,6 @@ export class EventBus {
     this.flushQueue();
   }
 
-
-  getPendingCount(): number {
-    return this.queue.length;
-  }
   private flushQueue(): void {
     if (this.isFlushingQueue) {
       return;

@@ -1,4 +1,3 @@
-import { createServer } from 'node:http';
 import pino, { type Logger } from 'pino';
 import type { PrismaClient } from '@prisma/client';
 
@@ -21,7 +20,6 @@ import { ReversalEngine } from '../strategy/engines/reversal.js';
 import { RegimeEngine } from '../strategy/regimeEngine.js';
 import { StrategyPlanner } from '../strategy/strategyPlanner.js';
 import { MexcClient } from '../mexc/client.js';
-import { SystemMetricsService } from '../metrics/systemMetricsService.js';
 
 export type RuntimeOptions = {
   paperMode?: boolean;
@@ -46,9 +44,7 @@ export type RuntimeContext = {
   portfolioService: PortfolioService;
   executionEngine: ExecutionEngine;
   positionManager: PositionManager;
-  systemMetricsService: SystemMetricsService;
   logger: Logger;
-  createHttpServer: (port?: number) => ReturnType<typeof createServer>;
 };
 
 export async function bootRuntime(options: RuntimeOptions = {}): Promise<RuntimeContext> {
@@ -89,9 +85,6 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
       portfolioCaps: {}
     }));
 
-    const systemMetricsService = new SystemMetricsService({ prisma, eventBus });
-    systemMetricsService.subscribe();
-
     boot('5.MarketDataService');
     const mexcClient = new MexcClient({ env: mexcEnv, logger: logger.child({ service: 'mexc' }) });
     const marketDataService = new MarketDataService({ prisma, mexcClient, eventBus });
@@ -110,8 +103,7 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
       eventBus,
       breakoutEngine,
       continuationEngine,
-      reversalEngine,
-      paramsService
+      reversalEngine
     });
 
     boot('9.RiskService');
@@ -130,12 +122,7 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
     });
 
     boot('12.PositionManager');
-    const positionManager = new PositionManager({
-      prisma,
-      eventBus,
-      auditService,
-      getActiveParamsVersionId: async () => (await paramsService.getActiveParams()).paramsVersionId
-    });
+    const positionManager = new PositionManager({ prisma, eventBus });
 
     const latestRegime = new Map<string, ReturnType<typeof regimeEngine.processFeature> extends Promise<infer R> ? R : never>();
 
@@ -143,6 +130,7 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
     eventBus.on('candle.closed', async (candle) => {
       await featureService.processClosedCandle(candle.symbol, candle.timeframe, candle.closeTime);
     });
+
     eventBus.on('features.ready', async (feature) => {
       if (feature.timeframe === '5m') {
         const decision = await regimeEngine.processFeature(feature);
@@ -150,6 +138,27 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
       }
 
       await strategyPlanner.onFeature(feature);
+
+        const continuation = await continuationEngine.evaluate(feature, decision);
+        if (continuation.triggered) {
+          eventBus.emit('signal.generated', { tradePlan: continuation.plan, feature, regime: decision });
+        }
+
+        const reversal = await reversalEngine.evaluate(feature, decision);
+        if (reversal.triggered) {
+          eventBus.emit('signal.generated', { tradePlan: reversal.plan, feature, regime: decision });
+        }
+      }
+
+      if (feature.timeframe === '1m') {
+        const decision = latestRegime.get(feature.symbol);
+        if (!decision) return;
+
+        const breakout = await breakoutEngine.evaluate(feature, decision);
+        if (breakout.triggered) {
+          eventBus.emit('signal.generated', { tradePlan: breakout.plan, feature, regime: decision });
+        }
+      }
     });
 
     eventBus.on('regime.updated', async (decision) => {
@@ -203,8 +212,7 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
         side: approved.plan.side,
         entryPrice: approved.plan.entryPrice,
         qty: approved.qty,
-        atrPct: approved.signal.feature.atrPct,
-        paramsVersionId: approved.plan.paramsVersionId
+        atrPct: approved.signal.feature.atrPct
       });
 
       if (result.status === 'FILLED') {
@@ -274,35 +282,11 @@ export async function bootRuntime(options: RuntimeOptions = {}): Promise<Runtime
       portfolioService,
       executionEngine,
       positionManager,
-      systemMetricsService,
-      logger,
-      createHttpServer: (port = 3000) => {
-        const server = createServer(async (req, res) => {
-          const url = req.url ?? '';
-          if (url.startsWith('/metrics')) {
-            const metrics = await systemMetricsService.getDailyMetrics();
-            res.setHeader('content-type', 'application/json');
-            res.end(JSON.stringify(metrics));
-            return;
-          }
-
-          if (url.startsWith('/health')) {
-            const health = await systemMetricsService.getHealth();
-            res.setHeader('content-type', 'application/json');
-            res.end(JSON.stringify(health));
-            return;
-          }
-
-          res.statusCode = 404;
-          res.end('not found');
-        });
-
-        server.listen(port, () => logger.info({ port }, 'HTTP observability server listening'));
-        return server;
-      }
+      logger
     };
   } catch (error) {
     logger.error({ err: error }, 'runtime boot failed');
     throw error;
   }
 }
+

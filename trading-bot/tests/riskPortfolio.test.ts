@@ -10,10 +10,10 @@ const plan = {
   tpModel: 'A' as const,
   leverage: 4,
   marginPct: 5,
-  paramsVersionId: '1',
   expiresAt: Date.now() + 60_000,
   reason: 'test',
-  confidence: 0.7
+    confidence: 0.7
+  reason: 'test'
 };
 
 const regime = {

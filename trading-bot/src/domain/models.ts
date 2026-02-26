@@ -51,6 +51,7 @@ export const candleSchema = z
  *   "ema50Slope": 0.12,
  *   "volumePct": 1.24,
  *   "volumePercentile": 76.3
+ *   "volumePct": 1.24
  * }
  */
 export const featureVectorSchema = z
@@ -71,6 +72,7 @@ export const featureVectorSchema = z
     ema50Slope: finiteNonNegativeNumber,
     volumePct: finiteNonNegativeNumber,
     volumePercentile: finiteNonNegativeNumber.max(100)
+    volumePct: finiteNonNegativeNumber
   })
   .strict();
 
@@ -111,10 +113,10 @@ export const tpModelSchema = z.enum(['A', 'B']);
  *   "tpModel": "A",
  *   "leverage": 3,
  *   "marginPct": 8,
- *   "paramsVersionId": "42",
  *   "expiresAt": 1734303600000,
  *   "reason": "validated breakout continuation",
  *   "confidence": 0.74
+ *   "reason": "validated breakout continuation"
  * }
  */
 export const tradePlanSchema = z
@@ -127,10 +129,10 @@ export const tradePlanSchema = z
     tpModel: tpModelSchema,
     leverage: finiteNonNegativeNumber,
     marginPct: finiteNonNegativeNumber,
-    paramsVersionId: nonEmptyString,
     expiresAt: epochMsSchema,
     reason: nonEmptyString,
     confidence: z.number().min(0).max(1)
+    reason: nonEmptyString
   })
   .strict();
 
@@ -144,7 +146,6 @@ export const orderTypeSchema = z.enum(['LIMIT', 'MARKET']);
  *   "type": "LIMIT",
  *   "price": 104300,
  *   "qty": 0.2,
- *   "paramsVersionId": "42",
  *   "timeoutMs": 15000,
  *   "cancelIfInvalid": true
  * }
@@ -156,7 +157,6 @@ export const orderIntentSchema = z
     type: orderTypeSchema,
     price: finiteNonNegativeNumber.optional(),
     qty: finiteNonNegativeNumber,
-    paramsVersionId: nonEmptyString,
     timeoutMs: epochMsSchema,
     cancelIfInvalid: z.boolean()
   })
@@ -235,7 +235,6 @@ export const positionStateSchema = z.enum(['OPEN', 'CLOSING', 'CLOSED', 'LIQUIDA
  *   "state": "OPEN",
  *   "realizedR": 0,
  *   "remainingQty": 0.2,
- *   "paramsVersionId": "42",
  *   "openedAt": 1734303000000,
  *   "updatedAt": 1734303100000
  * }
@@ -251,7 +250,6 @@ export const positionSchema = z
     state: positionStateSchema,
     realizedR: finiteNonNegativeNumber,
     remainingQty: finiteNonNegativeNumber,
-    paramsVersionId: nonEmptyString,
     openedAt: epochMsSchema,
     updatedAt: epochMsSchema
   })

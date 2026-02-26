@@ -1,5 +1,4 @@
 import type { FeatureVector, RegimeDecision, TradePlan } from '../domain/models.js';
-import type { ParamsService } from '../config/params.js';
 import { hashObject } from '../domain/models.js';
 import type { EventBus } from '../events/eventBus.js';
 import type { BreakoutEngine } from './engines/breakout.js';
@@ -12,7 +11,6 @@ export type StrategyPlannerOptions = {
   continuationEngine: ContinuationEngine;
   reversalEngine: ReversalEngine;
   defaultConfidence?: number;
-  paramsService: ParamsService;
 };
 
 export class StrategyPlanner {
@@ -21,7 +19,6 @@ export class StrategyPlanner {
   private readonly continuationEngine: ContinuationEngine;
   private readonly reversalEngine: ReversalEngine;
   private readonly defaultConfidence: number;
-  private readonly paramsService: ParamsService;
   private readonly latestRegime = new Map<string, RegimeDecision>();
 
   constructor(options: StrategyPlannerOptions) {
@@ -30,7 +27,6 @@ export class StrategyPlanner {
     this.continuationEngine = options.continuationEngine;
     this.reversalEngine = options.reversalEngine;
     this.defaultConfidence = options.defaultConfidence ?? 0.6;
-    this.paramsService = options.paramsService;
   }
 
   subscribe(): void {
@@ -67,8 +63,7 @@ export class StrategyPlanner {
       return;
     }
 
-    const activeParams = await this.paramsService.getActiveParams(feature.closeTime);
-    const normalizedPlan = this.normalizePlan(evaluation.plan, activeParams.paramsVersionId);
+    const normalizedPlan = this.normalizePlan(evaluation.plan);
 
     this.eventBus.emit('signal.generated', {
       tradePlan: normalizedPlan,
@@ -108,13 +103,12 @@ export class StrategyPlanner {
     return { triggered: false, reason: 'expansion_chaos_no_entry_engine' };
   }
 
-  private normalizePlan(plan: TradePlan, paramsVersionId: string): TradePlan {
+  private normalizePlan(plan: TradePlan): TradePlan {
     const confidence = Math.max(0, Math.min(1, plan.confidence ?? this.defaultConfidence));
 
     return {
       ...plan,
       confidence,
-      paramsVersionId: plan.paramsVersionId || paramsVersionId,
       expiresAt: Math.max(Date.now(), plan.expiresAt)
     };
   }

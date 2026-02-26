@@ -1,7 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 
 import type { RegimeDecision } from '../domain/models.js';
-import type { AuditService } from '../audit/auditService.js';
 import { hashObject } from '../domain/models.js';
 import type { EventBus } from '../events/eventBus.js';
 import { computeAtrPct } from '../indicators/atr.js';
@@ -24,7 +23,6 @@ export type ManagedPosition = {
   took2R: boolean;
   trailingAnchor: number;
   atrPct: number;
-  paramsVersionId: string;
 };
 
 export type PositionManagerConfig = {
@@ -38,8 +36,6 @@ export type PositionManagerOptions = {
   prisma: PrismaClient;
   eventBus: EventBus;
   config?: Partial<PositionManagerConfig>;
-  auditService?: AuditService;
-  getActiveParamsVersionId?: () => Promise<string>;
 };
 
 const DEFAULT_CONFIG: PositionManagerConfig = {
@@ -53,16 +49,12 @@ export class PositionManager {
   private readonly prisma: PrismaClient;
   private readonly eventBus: EventBus;
   private readonly config: PositionManagerConfig;
-  private readonly auditService?: AuditService;
-  private readonly getActiveParamsVersionId?: () => Promise<string>;
   private readonly managed = new Map<string, ManagedPosition>();
 
   constructor(options: PositionManagerOptions) {
     this.prisma = options.prisma;
     this.eventBus = options.eventBus;
     this.config = { ...DEFAULT_CONFIG, ...options.config };
-    this.auditService = options.auditService;
-    this.getActiveParamsVersionId = options.getActiveParamsVersionId;
   }
 
   arm(position: Omit<ManagedPosition, 'state' | 'realizedR' | 'took1R' | 'took2R' | 'trailingAnchor'>): ManagedPosition {
@@ -87,7 +79,6 @@ export class PositionManager {
     entryPrice: number;
     qty: number;
     atrPct: number;
-    paramsVersionId: string;
   }): Promise<void> {
     const initialStopPrice = buildInitialStop(input.entryPrice, input.atrPct, input.side);
     this.arm({
@@ -99,8 +90,7 @@ export class PositionManager {
       stopPrice: initialStopPrice,
       qty: input.qty,
       remainingQty: input.qty,
-      atrPct: input.atrPct,
-      paramsVersionId: input.paramsVersionId
+      atrPct: input.atrPct
     });
 
     const pos = this.managed.get(input.positionId);
@@ -132,8 +122,6 @@ export class PositionManager {
     if (!pos || pos.state !== 'IN_POSITION') {
       return;
     }
-
-    await this.warnOnParamDrift(pos);
 
     const riskPerUnit = Math.max(1e-8, Math.abs(pos.entryPrice - pos.initialStopPrice));
     const pnlPerUnit = pos.side === 'Long' ? price - pos.entryPrice : pos.entryPrice - price;
@@ -170,8 +158,6 @@ export class PositionManager {
       return;
     }
 
-    await this.warnOnParamDrift(pos);
-
     if (regime.regime === 'ExpansionChaos' && this.config.hardExitOnExpansionChaos) {
       await this.closePosition(pos, currentPrice, 'hard exit on ExpansionChaos');
       return;
@@ -204,8 +190,6 @@ export class PositionManager {
 
     pos.remainingQty -= qtyToExit;
 
-    await this.warnOnParamDrift(pos);
-
     const riskPerUnit = Math.max(1e-8, Math.abs(pos.entryPrice - pos.initialStopPrice));
     const pnlPerUnit = pos.side === 'Long' ? fillPrice - pos.entryPrice : pos.entryPrice - fillPrice;
     pos.realizedR += (pnlPerUnit / riskPerUnit) * (qtyToExit / pos.qty);
@@ -218,7 +202,10 @@ export class PositionManager {
         reason,
         inputsHash: hashObject({ positionId: pos.id, qtyToExit, fillPrice }),
         outputsHash: hashObject({ remainingQty: pos.remainingQty, realizedR: pos.realizedR }),
-        paramsVersionId: pos.paramsVersionId,
+        paramsVersionId: 'baseline',
+        category: 'position_manager',
+        action: 'partial_exit',
+        actor: 'position_manager',
         metadata: { positionId: pos.id, qtyToExit, fillPrice, reason }
       }
     });
@@ -241,7 +228,10 @@ export class PositionManager {
         reason,
         inputsHash: hashObject({ positionId: pos.id, fillPrice, qtyToExit }),
         outputsHash: hashObject({ realizedR: pos.realizedR }),
-        paramsVersionId: pos.paramsVersionId,
+        paramsVersionId: 'baseline',
+        category: 'position_manager',
+        action: 'position_closed',
+        actor: 'position_manager',
         metadata: { positionId: pos.id, fillPrice, qtyToExit, reason }
       }
     });
@@ -262,37 +252,8 @@ export class PositionManager {
       state: pos.state,
       realizedR: pos.realizedR,
       remainingQty: pos.remainingQty,
-      paramsVersionId: pos.paramsVersionId,
       openedAt: Date.now(),
       updatedAt: Date.now()
-    });
-  }
-
-
-  private async warnOnParamDrift(pos: ManagedPosition): Promise<void> {
-    if (!this.getActiveParamsVersionId || !this.auditService) {
-      return;
-    }
-
-    const activeParamsVersionId = await this.getActiveParamsVersionId();
-    if (activeParamsVersionId === pos.paramsVersionId) {
-      return;
-    }
-
-    await this.auditService.log({
-      step: 'position.paramDrift',
-      level: 'warn',
-      message: 'params version changed mid-position',
-      reason: 'params_drift',
-      inputs: {
-        positionId: pos.id,
-        symbol: pos.symbol,
-        activeParamsVersionId,
-        positionParamsVersionId: pos.paramsVersionId
-      },
-      outputs: { status: 'warning' },
-      paramsVersionId: pos.paramsVersionId,
-      metadata: { positionId: pos.id, symbol: pos.symbol }
     });
   }
 
@@ -304,7 +265,10 @@ export class PositionManager {
         message,
         inputsHash: hashObject({ positionId: pos.id }),
         outputsHash: hashObject({ stopPrice: pos.stopPrice, remainingQty: pos.remainingQty }),
-        paramsVersionId: pos.paramsVersionId,
+        paramsVersionId: 'baseline',
+        category: 'position_manager',
+        action: 'position_update',
+        actor: 'position_manager',
         metadata: { positionId: pos.id, message, stopPrice: pos.stopPrice, remainingQty: pos.remainingQty }
       }
     });
@@ -319,7 +283,6 @@ export class PositionManager {
       state: pos.state,
       realizedR: pos.realizedR,
       remainingQty: pos.remainingQty,
-      paramsVersionId: pos.paramsVersionId,
       openedAt: Date.now(),
       updatedAt: Date.now()
     });

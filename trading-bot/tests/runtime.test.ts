@@ -16,13 +16,6 @@ function prismaMock() {
     regimeDecision: {
       upsert: jest.fn(async () => ({}))
     },
-
-    systemMetricDaily: {
-      findUnique: jest.fn(async () => null),
-      create: jest.fn(async () => ({})),
-      update: jest.fn(async () => ({})),
-      findMany: jest.fn(async () => [])
-    },
     order: {
       findFirst: jest.fn(async () => null),
       create: jest.fn(async () => ({ id: 1n })),
@@ -39,7 +32,6 @@ function prismaMock() {
       create: jest.fn(async () => ({})),
       findFirst: jest.fn(async () => null)
     },
-    $queryRaw: jest.fn(async () => [{ ok: 1 }]),
     paramVersion: {
       findFirst: jest.fn(async () => ({
         id: 1n,

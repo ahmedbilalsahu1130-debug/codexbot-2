@@ -40,10 +40,9 @@ describe('StrategyPlanner', () => {
 
     const planner = new StrategyPlanner({
       eventBus: bus,
-      breakoutEngine: { evaluate: jest.fn(async () => ({ triggered: true, reason: 'ok', plan: { symbol: 'BTCUSDT', side: 'Long', engine: 'Breakout', entryPrice: 100, stopPct: 1, tpModel: 'A', leverage: 2, marginPct: 3, paramsVersionId: '1', expiresAt: Date.now() + 1000, reason: 'b', confidence: 0.5 } })) } as never,
-      continuationEngine: { evaluate: jest.fn(async () => ({ triggered: true, reason: 'ok', plan: { symbol: 'BTCUSDT', side: 'Long', engine: 'Continuation', entryPrice: 100, stopPct: 1, tpModel: 'B', leverage: 2, marginPct: 3, paramsVersionId: '1', expiresAt: Date.now() + 1000, reason: 'c', confidence: 0.5 } })) } as never,
-      reversalEngine: { evaluate: jest.fn(async () => ({ triggered: true, reason: 'ok', plan: { symbol: 'BTCUSDT', side: 'Short', engine: 'Reversal', entryPrice: 100, stopPct: 1, tpModel: 'B', leverage: 2, marginPct: 3, paramsVersionId: '1', expiresAt: Date.now() + 1000, reason: 'r', confidence: 0.5 } })) } as never,
-      paramsService: { getActiveParams: jest.fn(async () => ({ paramsVersionId: '1' })) } as never
+      breakoutEngine: { evaluate: jest.fn(async () => ({ triggered: true, reason: 'ok', plan: { symbol: 'BTCUSDT', side: 'Long', engine: 'Breakout', entryPrice: 100, stopPct: 1, tpModel: 'A', leverage: 2, marginPct: 3, expiresAt: Date.now() + 1000, reason: 'b', confidence: 0.5 } })) } as never,
+      continuationEngine: { evaluate: jest.fn(async () => ({ triggered: true, reason: 'ok', plan: { symbol: 'BTCUSDT', side: 'Long', engine: 'Continuation', entryPrice: 100, stopPct: 1, tpModel: 'B', leverage: 2, marginPct: 3, expiresAt: Date.now() + 1000, reason: 'c', confidence: 0.5 } })) } as never,
+      reversalEngine: { evaluate: jest.fn(async () => ({ triggered: true, reason: 'ok', plan: { symbol: 'BTCUSDT', side: 'Short', engine: 'Reversal', entryPrice: 100, stopPct: 1, tpModel: 'B', leverage: 2, marginPct: 3, expiresAt: Date.now() + 1000, reason: 'r', confidence: 0.5 } })) } as never
     });
 
     planner.subscribe();
@@ -74,8 +73,7 @@ describe('StrategyPlanner', () => {
       eventBus: bus,
       breakoutEngine: { evaluate: breakoutEval } as never,
       continuationEngine: { evaluate: jest.fn() } as never,
-      reversalEngine: { evaluate: jest.fn() } as never,
-      paramsService: { getActiveParams: jest.fn(async () => ({ paramsVersionId: '1' })) } as never
+      reversalEngine: { evaluate: jest.fn() } as never
     });
     planner.subscribe();
 
@@ -99,8 +97,7 @@ describe('StrategyPlanner', () => {
       eventBus: bus,
       breakoutEngine: { evaluate: jest.fn(async () => ({ triggered: false, reason: 'compression_gate_failed' })) } as never,
       continuationEngine: { evaluate: jest.fn() } as never,
-      reversalEngine: { evaluate: jest.fn() } as never,
-      paramsService: { getActiveParams: jest.fn(async () => ({ paramsVersionId: '1' })) } as never
+      reversalEngine: { evaluate: jest.fn() } as never
     });
     planner.subscribe();
 
@@ -111,29 +108,4 @@ describe('StrategyPlanner', () => {
     await new Promise((resolve) => setImmediate(resolve));
     expect(reasons[0]).toBe('compression_gate_failed');
   });
-
-
-  it('stamps active paramsVersionId onto generated plans', async () => {
-    const bus = new EventBus();
-    const paramsService = { getActiveParams: jest.fn(async () => ({ paramsVersionId: '42' })) };
-    const plans: Array<{ paramsVersionId: string }> = [];
-    bus.on('signal.generated', (payload) => plans.push({ paramsVersionId: payload.tradePlan.paramsVersionId }));
-
-    const planner = new StrategyPlanner({
-      eventBus: bus,
-      breakoutEngine: { evaluate: jest.fn(async () => ({ triggered: true, reason: 'ok', plan: { symbol: 'BTCUSDT', side: 'Long', engine: 'Breakout', entryPrice: 100, stopPct: 1, tpModel: 'A', leverage: 2, marginPct: 3, paramsVersionId: 'baseline', expiresAt: Date.now() + 1000, reason: 'b', confidence: 0.5 } })) } as never,
-      continuationEngine: { evaluate: jest.fn() } as never,
-      reversalEngine: { evaluate: jest.fn() } as never,
-      paramsService: paramsService as never
-    });
-    planner.subscribe();
-
-    const t = Date.now();
-    bus.emit('regime.updated', regime('Compression', false, t));
-    bus.emit('features.ready', feature('1m', { closeTime: t }));
-
-    await new Promise((resolve) => setImmediate(resolve));
-    expect(plans[0]?.paramsVersionId).toBe('baseline');
-  });
-
 });
